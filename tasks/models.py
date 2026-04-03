@@ -1,32 +1,47 @@
 from django.db import models
-from django.conf import settings
-# Create your models here.
+from django.contrib.auth.models import User
 
-class JobTask(models.Model):
-    class Status(models.TextChoices):
-        DRAFT = 'draft', 'Draft'
-        QUEUED = "queued", "Queued"
-        RUNNING = "running", "Running"
-        COMPLETED = "completed", "Completed"
-        FAILED = "failed", "Failed"
-        CANCELED = "canceled", "Canceled"
+from candidates.models import Candidate
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    title = models.CharField(max_length=225)
-    description = models.TextField()
-    requirements = models.JSONField(blank=True, null=True)
-    search_params = models.JSONField(blank=True, null=True)
+class Task(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('queued', 'Queued'),
+        ('running', 'Running'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
 
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    job_description = models.TextField()
+    key_requirements = models.TextField(blank=True, null=True)
 
-    total_found = models.IntegerField(default=0)
-    total_parsed = models.IntegerField(default=0)
-    total_scored = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
 
     created_at = models.DateTimeField(auto_now_add=True)
-    started_at = models.DateTimeField(blank=True, null=True)
-    finished_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.title} ({self.status})"
+        return self.title
+
+class TaskCandidate(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
+
+    relevance_score = models.FloatField()
+    relevance_label = models.CharField(max_length=20)
+
+    matched_skills = models.JSONField(default=list)
+    missing_skills = models.JSONField(default=list)
+
+    explanation = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('task', 'candidate')
+
+    def __str__(self):
+        return f"{self.task.title} - {self.candidate.full_name} ({self.relevance_score})"
