@@ -1,10 +1,14 @@
+import json
 import os
 
 from selenium_driverless import webdriver
 from selenium_driverless.types.by import By
 import asyncio
 
+from core import parse_linkedin_profile
+
 title = "Python developer"
+
 
 async def main():
     options = webdriver.ChromeOptions()
@@ -13,18 +17,24 @@ async def main():
     options._auto_clean_dirs = False
     async with webdriver.Chrome(options=options) as driver:
         users = []
-        for i in range(3):
-            await driver.get(f'https://www.linkedin.com/search/results/people/?keywords={title}&origin=SWITCH_SEARCH_VERTICAL&page={i+1}', wait_load=True)
+        for i in range(1):
+            await driver.get(
+                f'https://www.linkedin.com/search/results/people/?keywords={title}&origin=SWITCH_SEARCH_VERTICAL&page={i + 1}',
+                wait_load=True)
 
             cards = await driver.find_elements(By.CSS_SELECTOR, 'div[role="listitem"]')
             for card in cards:
-                user_link = await card.find_element(By.CSS_SELECTOR, ':scope > div p a[href^="https://www.linkedin.com/in/"]')
+                user_link = await card.find_element(By.CSS_SELECTOR,
+                                                    ':scope > div p a[href^="https://www.linkedin.com/in/"]')
                 user_link = await user_link.execute_script("return obj.getAttribute('href');")
                 users.append(user_link)
 
             await asyncio.sleep(3)
 
         print(users)
+        for user_url in users:
+            result = await parse_linkedin_profile(driver, user_url)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 asyncio.run(main())

@@ -15,6 +15,6 @@ async def main():
     async with webdriver.Chrome(options=options) as dr:
         await dr.get("https://www.linkedin.com/")
         while True:
-            await asyncio.sleep(1)
+             await asyncio.sleep(1)
 
 asyncio.run(main())
